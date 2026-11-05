@@ -1,17 +1,6 @@
 ---
-name: ecommerce-qa-checklist
-description: >
-  Generates comprehensive, structured QA test checklists for e-commerce platforms covering
-  13 modules across the full customer journey: Cart Logic (BXAY, BXGY, Tier Pricing), Add to
-  Cart & Buy Now, Checkout & Payments (incl. BNPL, gateway states), Promo Codes & Coupon
-  Stacking, Mystery Box / Freebies, Product Listing & PDP, Search & Autocomplete, Login & Auth
-  (incl. Guest Checkout), Order Management & Tracking, Returns/Exchange/Refunds, Gift Cards/
-  Store Credit/Loyalty, Shipping & Delivery, and Wishlist. Always use this skill when the user
-  asks to generate test cases, checklists, or test suites for any e-commerce feature — even
-  partial ones like "give me cart test cases", "test cases for buy now", "returns flow QA", or
-  "what should I test for checkout". Output is always BOTH a Markdown table AND a Google Apps
-  Script that populates a Google Sheet. Especially relevant for Shopify/Next.js storefronts,
-  Indian D2C e-commerce platforms, and any product with offer/promo/discount/loyalty logic.
+name: "ecommerce-qa-checklist"
+description: "Generates comprehensive, structured QA test checklists for e-commerce platforms covering 13 modules across the full customer journey: Cart Logic (BXAY, BXGY, Tier Pricing), Add to Cart & Buy Now, Checkout & Payments, Promo & Coupon Stacking, Mystery Box, PLP & PDP, Search, Login & Guest Checkout, Order Tracking, Returns/Refunds, Gift Cards/Loyalty, Shipping, and Wishlist. Shopify-aware: adapts cases to theme vs. headless storefronts, native vs. third-party checkouts (GoKwik, Shiprocket, Razorpay Magic), and the apps running loyalty, search, reviews, and returns. Always use this skill when the user asks for test cases, checklists, or test suites for any e-commerce feature, even partial ones like \"cart test cases\", \"buy now QA\", or \"what should I test for checkout\". Output is always BOTH a Markdown table AND a Google Apps Script that populates a Google Sheet.\n"
 ---
 
 # E-commerce QA Checklist Generator
@@ -25,6 +14,42 @@ timelines, and search relevance.
 **Always output TWO formats:**
 1. **Markdown table** — for quick review and documentation
 2. **Google Apps Script** — ready to paste and run to populate a Google Sheet
+
+---
+
+## Step 0: Platform Intake (Shopify stores)
+
+Run this before generating cases whenever the store is on Shopify, or the platform is
+unknown. Skip it for non-Shopify platforms. These three answers change where bugs live, so
+the same module produces different cases for each combination.
+
+| Question | Options | Reference file |
+|----------|---------|----------------|
+| Storefront architecture | Liquid theme / Headless (Hydrogen, Next.js, custom) | `references/shopify-storefront-architecture.md` |
+| Checkout | Native Shopify / Third-party (GoKwik, Shiprocket Checkout, Razorpay Magic, other) | `references/shopify-checkout-variants.md` |
+| Apps for loyalty, search, reviews, returns | App name per feature, "native", or "not used" | `references/shopify-app-integrations.md` |
+
+How to run the intake:
+- First extract answers from the user's message, attached docs (PRD/FRD), or earlier
+  conversation. Only ask about what's still missing.
+- Ask all missing questions in one go (use tappable options if the interface supports
+  them). Don't block for long: if the user says "not sure", proceed with the unknown-state
+  rules at the end of each reference file.
+- Read only the reference files for answers that apply, and only for modules in scope
+  (e.g. a Wishlist-only request on a headless store needs only the headless section).
+
+How the answers shape the output:
+- **Tagging:** append a variant tag to the Sub-Feature of every case that only applies to one
+  setup: `[Theme]`, `[Headless]`, `[Native Checkout]`, `[GoKwik]` (or other provider name),
+  `[App: <name>]`. Shared cases get no tag. This lets the team filter the sheet by setup.
+- **Module mapping:** checkout variants feed `CHK`, `PROMO`, `ATC`, `AUTH`; architecture feeds
+  `CART`, `ATC`, `PDP`, `AUTH`, `WISH`; apps map loyalty → `GC`, search → `SRCH`,
+  reviews → `PDP`, returns → `RET`.
+- **Admin verification:** for Shopify, expected results for order, discount, gift card,
+  loyalty, and return cases should include what to check in Shopify admin (discount lines,
+  tags, financial status, inventory), not only what the shopper sees.
+- **Not used:** if a feature is marked "not used", skip its module or note it in the
+  summary instead of generating cases for a feature the store doesn't have.
 
 ---
 
@@ -252,6 +277,13 @@ function onOpen() {
 - Each module gets its own sheet tab and its own function
 - If generating multiple modules, create one `onOpen()` that adds all items to the menu
 
+
+**Platform Profile tab (Shopify only):** when Step 0 ran, also generate a
+`populatePlatformProfile()` function that creates a `Platform_Profile` tab as the first tab,
+listing each intake question, the answer (or "Unknown — assumed both variants"), and the
+reference applied. Add it to the `onOpen()` menu and call it first from the populate-all
+function. Use the same header styling and `setValues()` rule as module tabs.
+
 ---
 
 ## Multi-Module Output Structure
@@ -294,6 +326,9 @@ Then output: Markdown tables first, then the full combined Apps Script.
 - [ ] Expected results are assertable (specific values, not "works correctly")
 - [ ] If coupon/offer/gift-card/loyalty modules are all in scope, at least one stacking-conflict
       test case exists that combines two of them
+- [ ] Shopify only: Step 0 answers are reflected — variant tags on setup-specific cases,
+      Platform_Profile tab present, and no cases for features marked "not used"
+- [ ] Shopify only: order/discount/return cases include an admin-side expected result
 
 ---
 
@@ -311,3 +346,12 @@ Then output: Markdown tables first, then the full combined Apps Script.
 - `references/discovery-engagement-patterns.md` — Search/autocomplete relevance patterns,
   Wishlist persistence, Gift Card/Loyalty redemption logic. Read when generating Search,
   Wishlist, or Gift Card test cases.
+- `references/shopify-storefront-architecture.md` — Liquid theme (AJAX cart, drawer vs. page,
+  app embeds, Markets) vs. headless (Storefront API cart, checkout handoff, caching, app
+  integration via API). Read when Step 0 identifies the architecture, or it's unknown.
+- `references/shopify-checkout-variants.md` — Native checkout (discount combination flags,
+  Functions, payment providers, COD, UI extensions) vs. third-party checkout (entry and
+  fallback, discount parity, OTP/COD, order sync). Read when Step 0 identifies the checkout.
+- `references/shopify-app-integrations.md` — App-to-Shopify contract tests for loyalty,
+  search, reviews, and returns apps, plus shared app-failure cases. Read when Step 0 names
+  the apps.

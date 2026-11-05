@@ -14,6 +14,13 @@ offer, promo, discount, gift-card, or loyalty logic — the places where D2C bug
 cluster (coupon + offer + gift-card stacking conflicts, Buy Now bypassing the offer engine,
 refund timelines, search relevance).
 
+## Shopify-aware (Step 0 intake)
+
+For Shopify stores the skill first runs a platform intake: theme vs. headless storefront,
+native vs. third-party checkout, and which apps power loyalty/search/reviews/returns. Setup-specific
+cases are tagged (`[Theme]`, `[Headless]`, `[GoKwik]`, `[App: <name>]`), order/discount/return
+cases include Shopify admin checks, and a `Platform_Profile` tab is added to the generated sheet.
+
 ## Modules covered (13)
 
 | Module | TC prefix | Examples of what gets tested |
@@ -83,6 +90,9 @@ references/
   payments-and-checkout-patterns.md        # gateway states, BNPL, Buy Now, guest checkout, cart merge
   order-lifecycle-patterns.md              # order state machine, returns/refunds, shipping serviceability
   discovery-engagement-patterns.md         # search relevance, wishlist persistence, gift card / loyalty
+  shopify-storefront-architecture.md       # Liquid theme vs. headless storefront cases
+  shopify-checkout-variants.md             # native Shopify checkout vs. GoKwik / Shiprocket / Razorpay Magic
+  shopify-app-integrations.md              # loyalty, search, reviews, returns app contract tests
 ```
 
 The reference files are loaded on demand — the skill reads only the ones relevant to the
